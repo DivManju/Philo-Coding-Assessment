@@ -116,7 +116,7 @@ class StackFactory(Factory):
     Factories are state machines to record state of twisted protocol handlers.
 
     The default implementation of the buildProtocol method calls the protocol
-    attribute of the factor to create a Protocol instance, and then sets an attribute
+    attribute of the factory to create a Protocol instance, and then sets an attribute
     on it called factory which points to the factory itself.
 
     This lets every Protocol access, and possibly modify, the persistent configuration.
