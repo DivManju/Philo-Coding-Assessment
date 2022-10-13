@@ -1,9 +1,10 @@
 import collections
 from struct import pack
+from time import time
 
-# from twisted.internet import epollreactor
-#
-# epollreactor.install()
+from twisted.internet import epollreactor
+epollreactor.install()
+
 from twisted.internet import reactor
 
 from twisted.internet.protocol import Protocol, Factory
@@ -26,19 +27,40 @@ class Stack(Protocol):
         self.headerseen = False
         self.bytesremaining = None
         self.payload = b''
+        self.isconnected = False
 
 
     def connectionMade(self):
         """
         Invoked by twisted to setup connection object
         """
-        pass
+        self.isconnected = True
+        self.factory.open_connections += 1
+        now = time()
+        if self.factory.open_connections == 101:
+            if (int(time() - self.factory.
+                    client_connection_timestamp[self.factory.clients[-1]]) > 10):
+                self.factory.clients[-1].transport.loseConnection()
+                self.factory.client_connection_timestamp[self] = now
+                self.factory.clients.insert(0, self)
+            else:
+                retval = pack('B', 255)
+                self.transport.write(retval)
+                self.factory.client_connection_timestamp[self] = now
+                self.factory.clients.insert(0, self)
+                self.transport.loseConnection()
+            return
+        self.factory.client_connection_timestamp[self] = now
+        self.factory.clients.insert(0, self)
 
     def connectionLost(self, reason):
         """
         Invoked by twisted to tear down connection object
         """
-        pass
+        self.isconnected = False
+        self.factory.open_connections -= 1
+        self.factory.clients.remove(self)
+        del self.factory.client_connection_timestamp[self]
 
     def dataReceived(self, data):
         """
@@ -49,6 +71,8 @@ class Stack(Protocol):
             if header == 128:
                 if self.factory.stack:
                     self.pop()
+                else:
+                    self.factory.blocked_pop_requests.appendleft(self)
                 self.headerseen = True
                 return
             if len(data) > 1:
@@ -59,10 +83,18 @@ class Stack(Protocol):
             self.payload += data
             self.bytesremaining -= len(data)
         if not self.bytesremaining:
-            retval = pack('B', 0)
-            self.transport.write(retval)
-            self.factory.stack.appendleft(self.payload)
-            self.transport.loseConnection()
+            if len(self.factory.stack) < 100:
+                self.factory.stack.appendleft(self.payload)
+                retval = pack('B', 0)
+                self.transport.write(retval)
+                self.transport.loseConnection()
+            else:
+                self.factory.blocked_push_requests.appendleft(self)
+            if self.factory.blocked_pop_requests:
+                popstackval = self.factory.blocked_pop_requests.pop()
+                if not popstackval.isconnected:
+                    return
+                popstackval.pop()
 
     def pop(self):
         stackval = self.factory.stack.popleft()
@@ -70,6 +102,14 @@ class Stack(Protocol):
         self.transport.write(retval)
         self.transport.write(stackval)
         self.transport.loseConnection()
+        if self.factory.blocked_push_requests:
+            push_request = self.factory.blocked_push_requests.pop()
+            if not push_request.isconnected:
+                return
+            self.factory.stack.appendleft(push_request.payload)
+            retval = pack('B', 0)
+            push_request.transport.write(retval)
+            push_request.transport.loseConnection()
 
 class StackFactory(Factory):
     """
@@ -83,6 +123,12 @@ class StackFactory(Factory):
     """
     def __init__(self):
         self.stack = collections.deque()
+        self.blocked_push_requests = collections.deque()
+        self.blocked_pop_requests = collections.deque()
+        self.clients = []
+        self.client_connection_timestamp = {}
+        self.open_connections = 0
+
 
     def buildProtocol(self, addr):
         return Stack(self)
