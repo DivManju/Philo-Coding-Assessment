@@ -8,4 +8,4 @@ COPY . /usr/src/app/
 
 RUN pip install -r ./requirements.txt
 
-CMD [ "python", "./app.py" ]
+CMD [ "python", "./server.py" ]
