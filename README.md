@@ -18,6 +18,6 @@ docker-compose run -p 8080:8080 tcp_server
 Note: Ruby 2.3.0 or greater is required
 ```
 ruby tests/stack-test.rb -v 
-python tests/server-tests.py TestStackServer
+python tests/stack-test.py TestStackServer
 ```
 
