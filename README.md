@@ -4,7 +4,7 @@ This is an implementation of a TCP Server that manages a LIFO stack using
 [Twisted](https://docs.twisted.org/en/twisted-18.7.0/core/howto/servers.html), a platform for developing internet applications.
 
 ## Requirements 
-Please find docker desktop installation instructions [here](https://docs.docker.com/get-docker/)
+Note: Docker desktop installation [here](https://docs.docker.com/get-docker/)
 ```
 Docker Desktop
 ```
