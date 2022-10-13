@@ -3,6 +3,12 @@
 This is an implementation of a TCP Server that manages a LIFO stack using 
 [Twisted](https://docs.twisted.org/en/twisted-18.7.0/core/howto/servers.html), a platform for developing internet applications.
 
+## Requirements 
+Please find docker desktop installation instructions [here](https://docs.docker.com/get-docker/)
+```
+Docker Desktop
+```
+
 ## Run
 ```
 docker-compose run -p 8080:8080 tcp_server
