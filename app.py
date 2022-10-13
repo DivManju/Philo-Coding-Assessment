@@ -1,10 +1,13 @@
+import collections
+
 from twisted.internet import epollreactor
+
 epollreactor.install()
 from twisted.internet import reactor
 
-from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Protocol, Factory
 
-class LifoStackServer(Protocol):
+class Stack(Protocol):
     """
     Twisted implements network protocol parsing and handling for TCP servers via twisted.internet.protocol.Protocol.
 
@@ -13,6 +16,9 @@ class LifoStackServer(Protocol):
 
     The protocol responds to events as they arrive from the network and the events arrive as calls to methods on the protocol.
     """
+
+    def __init__(self,factory):
+        self.factory = factory
 
     def connectionMade(self):
         """
@@ -33,6 +39,23 @@ class LifoStackServer(Protocol):
         pass
 
 
+class StackFactory(Factory):
+    """
+    Factories are state machines to record state of twisted protocol handlers.
+
+    The default implementation of the buildProtocol method calls the protocol attribute of the factory
+    to create a Protocol instance, and then sets an attribute on it called factory which points
+    to the factory itself.
+
+    This lets every Protocol access, and possibly modify, the persistent configuration.
+    """
+    def __init__(self):
+        self.stack = collections.deque()
+
+    def build_protocol(self, addr):
+        return Stack(self)
+
+
 if __name__ == '__main__':
         """
         The reactor listens for certain events and dispatches them to registered callback functions that have 
@@ -42,7 +65,7 @@ if __name__ == '__main__':
         
         The epoll()-based reactor is Twisted’s default on Linux.
         """
-        reactor.listenTCP(8080, LifoStackServer())
+        reactor.listenTCP(8080, Stack())
         reactor.run()
 
 
