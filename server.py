@@ -2,9 +2,6 @@ import collections
 from struct import pack
 from time import time
 
-from twisted.internet import epollreactor
-epollreactor.install()
-
 from twisted.internet import reactor
 
 from twisted.internet.protocol import Protocol, Factory
@@ -141,8 +138,6 @@ if __name__ == '__main__':
         
         reactor.run() starts the reactor and then waits forever for connections to arrive 
         on the port specified.
-        
-        The epoll()-based reactor is Twisted’s default on Linux.
         """
         reactor.listenTCP(8080, StackFactory())
         reactor.run()
